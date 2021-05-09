@@ -1,159 +1,185 @@
-'''
-ЗАДАНИЕ ПО ЗМЕЙКЕ
-'''
-"""
-# підключаємо бібліотеки 
-from turtle import * # черепашка
-from random import randrange # рандом
-from freegames import square, vector # freegames - вектори
+from random import choice
+from turtle import *
+from freegames import floor, vector
+from random import *
 
-food = vector(0, 10) # 0, 10 початкові координати
-snake = [vector(360, 300)] # 360, 300 початкові координати змійки
-aim = vector(-10, 0) # -10, 0 початковий напрям змійки
-timer = 100
-def change(x, y):
-    aim.x = x
-    aim.y = y
+# рахунок
+state = {'score': 0}
+path = Turtle(visible=False)
+writer = Turtle(visible=False)
+# напрямок
+aim = vector(5, 0)
+# початкові координати пекмена
+pacman = vector(-40, -80)
+# вороги
+ghosts = [
+    [vector(-180, 160), vector(5, 0)],
+    [vector(-180, -160), vector(0, 5)],
+    [vector(100, 160), vector(0, -5)],
+    [vector(100, -160), vector(-5, 0)],
+    [vector(-180, 160), vector(5, 0)],
+    [vector(-180, -160), vector(0, 5)],
+    [vector(100, 160), vector(0, -5)],
+    [vector(100, -160), vector(-5, 0)],
+    [vector(-180, 160), vector(5, 0)],
+    [vector(-180, -160), vector(0, 5)],
+    [vector(100, 160), vector(0, -5)],
+    [vector(100, -160), vector(-5, 0)],
+    [vector(-180, 160), vector(5, 0)],
+    [vector(-180, -160), vector(0, 5)],
+    [vector(100, 160), vector(0, -5)],
+    [vector(100, -160), vector(-5, 0)],
+    [vector(-180, 160), vector(5, 0)],
+    [vector(-180, -160), vector(0, 5)],
+    [vector(100, 160), vector(0, -5)],
+    [vector(100, -160), vector(-5, 0)]
+]
+# карта, 0 - це стіна, 1 - це дорога
+def ran_tile():
+    return randrange(0, 2)
+tiles = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, ran_tile(), 0, 0, 0, 0, 0,
+    0, ran_tile(), 1, ran_tile(), 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 1, 0, 0, ran_tile(), 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, ran_tile(), 1, 1, 1, 1, ran_tile(), 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0,ran_tile(), 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 0, 1,ran_tile(), 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, ran_tile(), 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, ran_tile(), 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, ran_tile(), 0, 1, 1, 1, ran_tile(), 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, ran_tile(), 0, 0, 0, 1, 1, 1, 1, 1, ran_tile(), 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 0, 1, 1, 1, 1,ran_tile(), 0, 1, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, ran_tile(), 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, ran_tile(), 1, 1, ran_tile(), 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, ran_tile(), 0, 0, 1, ran_tile(), 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, ran_tile(), 1, 0, 1, ran_tile(), 0, 0, 0, 0,
+    0, 0, 1, 0, 1, 0, 1, 0, 0, ran_tile(), 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
+    ran_tile(), 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, ran_tile(), 1, 0, 1, ran_tile(), 0, 0, ran_tile(), 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ran_tile(), 0, 0, 0,
+    0, 0, 0, ran_tile(), 0, 0, 0, 0, 0, 0, ran_tile(), 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+]
 
-def inside(head):
-    # Перевірка на те чи ми знаходимось всередині карти
-    # Границі карти в пікселях, можна міняти
-    return -400 < head.x < 380 and -400 < head.y < 380
+def square(x, y):
+    "Draw square using path at (x, y)."
+    path.up()
+    path.goto(x, y)
+    path.down()
+    path.begin_fill()
 
-def move():
-    global timer
-    # рух змійки
-    head = snake[-1].copy()
-    head.move(aim)
-    # Створюємо червоний квадрат перед змійкою, якщо вона вилазить за межі карти
-    if not inside(head) or head in snake:
-        square(head.x, head.y, 9, 'red')
-        update()
-        return
+    for count in range(4):
+        path.forward(20)
+        path.left(90)
 
-    snake.append(head)
-    
-    # рандомна поява їжі
-    if head == food:
-        print('Snake:', len(snake))
-        food.x = randrange(-40, 40) * 10
-        food.y = randrange(-40, 40) * 10
-        timer = timer - 1
+    path.end_fill()
 
-    else:
-        snake.pop(0)
+def offset(point):
+    "Return offset of point in tiles."
+    x = (floor(point.x, 20) + 200) / 20
+    y = (180 - floor(point.y, 20)) / 20
+    index = int(x + y * 20)
+    return index
 
-    clear()
-    # колір змійки 
-    
-    for body in snake:
-        square(body.x, body.y, 9, 'green')
-    
-    # колір їжі
-    square(food.x, food.y, 9, 'red')
-    update()
-    ontimer(move, timer)
-# початковий розмір екрану
-setup(840, 820, 370, 0)
-bgcolor("#1E1E1E")
-hideturtle()
-tracer(False)
-listen()
-# клавіші управління, можна міняти
-onkey(lambda: change(10, 0), 'Right') # d
-onkey(lambda: change(-10, 0), 'Left') # a
-onkey(lambda: change(0, 10), 'Up') # w
-onkey(lambda: change(0, -10), 'Down') # s
-move()
-done()
-"""
+def valid(point):
+    "Return True if point is valid in tiles."
+    index = offset(point)
 
+    if tiles[index] == 0:
+        return False
 
-'''
-ЗАДАНИЕ ПО Flapy Bird
-'''
+    index = offset(point + 19)
 
-"""
-Flappy, game inspired by Flappy Bird.
+    if tiles[index] == 0:
+        return False
 
-Exercises
+    return point.x % 20 == 0 or point.y % 20 == 0
 
-1. Keep score.
-2. Vary the speed.
-3. Vary the size of the balls.
-4. Allow the bird to move forward and back.
-"""
+def world():
+    "Draw world using path."
+    bgcolor('black')
+    path.color('blue')
 
+    for index in range(len(tiles)):
+        tile = tiles[index]
+        if tile > 0:
+            x = (index % 20) * 20 - 200
+            y = 180 - (index // 20) * 20
+            square(x, y)
 
-from random import * # рандомні числа (випадкові числа)
-from turtle import *  # бібліотека для графіки
-from freegames import vector # додаткова бібліотека для turtle
-speed = 100
-bird = vector(0, 0) # птах
-balls = [] # це м'ячі
-# функція для нажимання на екран, підстрибування
-def tap(x, y):
-    "Move bird up in response to screen tap."
-    up = vector(0, 50) # 0,50 це відстань на яку ми підстрибуємо
-    bird.move(up)
-# перевірка на те чи ми заходимо за межі карти
-def inside(point):
-    "Return True if point on screen."
-    return -300 < point.x < 300 and -300 < point.y < 300
-# для малювання кольорів і графіки
-def draw(alive):
-    "Draw screen objects."
-    clear()
-
-    goto(bird.x, bird.y)
-# якщо ми живі то світимося фіолетовим кольором
-    if alive:
-        dot(10, 'purple')
-    else:
-        dot(10, 'black') # якщо помираємо світимося чорним кольором
-# м'ячі позначені фіолетовим кольором
-    for ball in balls:
-        goto(ball.x, ball.y)
-        dot(20, '#6a0c6e')
-
-    update()
+            if tile == 1:
+                path.up()
+                path.goto(x + 10, y + 10)
+                # розмір їжі та її колір
+                path.dot(2, 'white')
 
 def move():
-    global speed
-    "Update object positions."
-    bird.y -= 5
+    "Move pacman and all ghosts."
+    writer.undo()
+    writer.write(state['score'])
 
-    for ball in balls:
-        ball.x -= 3
+    clear()
 
-    if randrange(10) == 0:
-        y = randrange(-299, 299)
-        ball = vector(299, y)
-        balls.append(ball)
-        ran_speed = randrange(0,4)
-        if ran_speed == 1:
-            speed = speed - 1
-            print("скорость:",speed)
+    if valid(pacman + aim):
+        pacman.move(aim)
 
-    while len(balls) > 0 and not inside(balls[0]):
-        balls.pop(0)
+    index = offset(pacman)
 
-    if not inside(bird):
-        draw(False)
-        return
+    if tiles[index] == 1:
+        tiles[index] = 2
+        state['score'] += 1
+        x = (index % 20) * 20 - 200
+        y = 180 - (index // 20) * 20
+        square(x, y)
 
-    for ball in balls:
-        if abs(ball - bird) < 15:
-            draw(False)
+    up()
+    goto(pacman.x + 10, pacman.y + 10)
+    # розмір пекмена та його колір
+    dot(20, 'white')
+
+    for point, course in ghosts:
+        if valid(point + course):
+            point.move(course)
+        else:
+            options = [
+                vector(5, 0),
+                vector(-5, 0),
+                vector(0, 5),
+                vector(0, -5),
+            ]
+            plan = choice(options)
+            course.x = plan.x
+            course.y = plan.y
+
+        up()
+        goto(point.x + 10, point.y + 10)
+        # розмір ворогів та їх колір
+        dot(20, 'brown')
+
+    update()
+
+    for point, course in ghosts:
+        if abs(pacman - point) < 20:
             return
 
-    draw(True)
-    ontimer(move, speed)
-bgcolor("#1E1E1E")
-setup(630, 630, 370, 0)
+    ontimer(move, 100)
+
+def change(x, y):
+    "Change pacman aim if valid."
+    if valid(pacman + vector(x, y)):
+        aim.x = x
+        aim.y = y
+
+setup(420, 420, 370, 0)
 hideturtle()
-up()
 tracer(False)
-onscreenclick(tap)
+writer.goto(160, 160)
+writer.color('white')
+writer.write(state['score'])
+listen()
+onkey(lambda: change(5, 0), 'Right')
+onkey(lambda: change(-5, 0), 'Left')
+onkey(lambda: change(0, 5), 'Up')
+onkey(lambda: change(0, -5), 'Down')
+world()
 move()
 done()
